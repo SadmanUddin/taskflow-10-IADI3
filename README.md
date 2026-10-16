@@ -330,11 +330,11 @@ This TaskFlow application demonstrates:
 
 ## 🎯 Future Enhancements
 
-Potential improvements for version 2.0:
-- [ ] **Task Categories**: Color-coded categories (Work, Personal, Shopping)
-- [ ] **Due Dates**: Calendar integration and deadline reminders
-- [ ] **Priority Levels**: High, Medium, Low priority sorting
-- [ ] **Search & Filter**: Advanced task filtering capabilities
+Potential improvements for version 2.0. Each team member owns one feature:
+- [ ] **Task Categories**: Color-coded categories (Work, Personal, Shopping) — @SadmanUddin
+- [ ] **Due Dates**: Calendar integration and deadline reminders — @Aiborfr
+- [ ] **Priority Levels**: High, Medium, Low priority sorting — @LibanAbdullahi
+- [ ] **Search & Filter**: Advanced task filtering capabilities — @mehmetmetinerdemli
 - [ ] **Dark Mode**: Toggle between light and dark themes
 - [ ] **Collaboration**: Share tasks with team members
 - [ ] **Sync**: Cloud synchronization across devices
@@ -352,7 +352,10 @@ Potential improvements for version 2.0:
 Thanks to all the students and developers who contributed to this project:
 
 ### Course Contributors (Week 2 - Git Fundamentals)
-- [@LibanAbdullahi](https://github.com/LibanAbdullahi) - Solo project: documentation improvements and setup guide, CSS enhancements and responsive design, JavaScript functionality and error handling, testing and project management
+- [@LibanAbdullahi](https://github.com/LibanAbdullahi) - Documentation improvements and setup guide
+- [@SadmanUddin](https://github.com/SadmanUddin) - CSS enhancements and responsive design
+- [@Aiborfr](https://github.com/Aiborfr) - JavaScript functionality and error handling
+- [@mehmetmetinerdemli](https://github.com/mehmetmetinerdemli) - Testing, quality assurance, and project management
 
 ### How to Become a Contributor
 1. Complete the [setup instructions](docs/SETUP.md)
