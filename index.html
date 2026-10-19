@@ -62,6 +62,17 @@
                     <!-- #taskCount - headline counter, updated by updateStats() -->
                     <span id="taskCount" class="task-count">0 tasks</span>
                 </div>
+
+                <div class="tasks-toolbar">
+                    <!-- #searchInput - filters the list as you type (see bindEvents) -->
+                    <input type="search" id="searchInput" class="search-input"
+                           placeholder="Search tasks..." aria-label="Search tasks">
+                    <div class="filter-buttons" role="group" aria-label="Filter tasks">
+                        <button class="filter-btn active" data-filter="all" aria-pressed="true">All</button>
+                        <button class="filter-btn" data-filter="pending" aria-pressed="false">Pending</button>
+                        <button class="filter-btn" data-filter="completed" aria-pressed="false">Completed</button>
+                    </div>
+                </div>
                 <!--
                     #tasksList - renderTasks() replaces this element's innerHTML
                     wholesale, so anything written here by hand is discarded on
@@ -78,6 +89,12 @@
                     <div class="empty-icon">✨</div>
                     <h3>No tasks yet</h3>
                     <p>Add your first task above to get started!</p>
+                </div>
+                <!-- #noResults - shown when tasks exist but none match the search/filter -->
+                <div id="noResults" class="empty-state no-results">
+                    <div class="empty-icon">🔍</div>
+                    <h3>No matching tasks</h3>
+                    <p>Try a different search or filter.</p>
                 </div>
             </div>
 
