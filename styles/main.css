@@ -248,6 +248,71 @@ select {
 }
 
 /* ========================================
+   Search and Status Filtering
+======================================== */
+
+.tasks-toolbar {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 200px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-family: inherit;
+    background: #f8fafc;
+    transition: all 0.3s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    font-family: inherit;
+    color: #4a5568;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+    border-color: #667eea;
+}
+
+.filter-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: transparent;
+    color: white;
+}
+
+.filter-btn:focus-visible {
+    outline: 3px solid #667eea;
+    outline-offset: 3px;
+}
+
+/* ========================================
    Category Filtering
 ======================================== */
 
@@ -357,7 +422,7 @@ select {
 }
 
 /* ========================================
-   Category Management: Task Badges
+   Category Management: Task Details
 ======================================== */
 
 .task-details {
@@ -368,6 +433,10 @@ select {
     flex: 1;
     min-width: 0;
 }
+
+/* ========================================
+   Category Management: Task Badges
+======================================== */
 
 .task-category-badge {
     display: inline-flex;
@@ -382,28 +451,24 @@ select {
     overflow-wrap: anywhere;
 }
 
-/* Work: blue from the existing palette */
 .category-work {
     background: #ebf8ff;
     color: #3182ce;
     border: 1px solid #bee3f8;
 }
 
-/* Personal: purple from the existing primary gradient */
 .category-personal {
     background: #f3e8ff;
     color: #764ba2;
     border: 1px solid #d6bcfa;
 }
 
-/* Shopping: green from the existing success palette */
 .category-shopping {
     background: #f0fff4;
     color: #276749;
     border: 1px solid #9ae6b4;
 }
 
-/* Older tasks without an assigned category */
 .category-uncategorized {
     background: #edf2f7;
     color: #4a5568;
@@ -453,7 +518,7 @@ select {
 }
 
 /* ========================================
-   Empty State
+   Empty and No-Results States
 ======================================== */
 
 .empty-state {
@@ -471,6 +536,13 @@ select {
     font-size: 1.25rem;
     margin-bottom: 0.5rem;
     color: #4a5568;
+}
+
+.no-results {
+    display: none;
+    text-align: center;
+    padding: 2rem;
+    color: #718096;
 }
 
 /* ========================================
@@ -594,6 +666,24 @@ select {
     .task-filter-container .task-category-select {
         width: 100%;
     }
+
+    .tasks-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-input {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .filter-buttons {
+        justify-content: space-between;
+    }
+
+    .filter-btn {
+        flex: 1;
+    }
 }
 
 @media (max-width: 480px) {
@@ -634,9 +724,16 @@ select {
     .task-category-badge {
         font-size: 0.7rem;
     }
+
+    .task-filter-container .task-category-select {
+        width: 100%;
+    }
 }
 
-/* Respect reduced-motion preferences */
+/* ========================================
+   Respect Reduced-Motion Preferences
+======================================== */
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
