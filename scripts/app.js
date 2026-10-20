@@ -4,6 +4,8 @@ const MAX_TASK_LENGTH = 500;
 class TaskFlow {
     constructor() {
         try {
+            this.searchQuery = '';
+            this.currentFilter = 'all';
             this.tasks = this.loadTasks();
             this.taskIdCounter = this.getNextTaskId();
             this.initializeApp();
@@ -49,8 +51,42 @@ class TaskFlow {
             }
         });
 
+        const searchInput = this.getElement('searchInput');
+        searchInput.addEventListener('input', (e) => {
+            this.searchQuery = e.target.value;
+            this.renderTasks();
+        });
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.setFilter(btn.dataset.filter));
+        });
+
         // Focus on input when page loads
         taskInput.focus();
+    }
+
+    setFilter(filter) {
+        this.currentFilter = filter;
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            const isActive = btn.dataset.filter === filter;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-pressed', String(isActive));
+        });
+        this.renderTasks();
+    }
+
+    // Applies the search text and the status filter together; the stored
+    // tasks array is never modified, only the view of it.
+    getVisibleTasks() {
+        const query = this.searchQuery.trim().toLowerCase();
+        return this.tasks.filter(task => {
+            const matchesSearch = task.text.toLowerCase().includes(query);
+            const matchesFilter =
+                this.currentFilter === 'all' ||
+                (this.currentFilter === 'completed' && task.completed) ||
+                (this.currentFilter === 'pending' && !task.completed);
+            return matchesSearch && matchesFilter;
+        });
     }
 
     addTask() {
@@ -161,18 +197,29 @@ class TaskFlow {
     renderTasks() {
         const tasksList = this.getElement('tasksList');
         const emptyState = this.getElement('emptyState');
+        const noResults = this.getElement('noResults');
 
         if (this.tasks.length === 0) {
             tasksList.style.display = 'none';
             emptyState.style.display = 'block';
+            noResults.style.display = 'none';
             return;
         }
 
-        tasksList.style.display = 'flex';
         emptyState.style.display = 'none';
+        const visibleTasks = this.getVisibleTasks();
+
+        if (visibleTasks.length === 0) {
+            tasksList.style.display = 'none';
+            noResults.style.display = 'block';
+            return;
+        }
+
+        noResults.style.display = 'none';
+        tasksList.style.display = 'flex';
 
         // Sort tasks: incomplete first, then by creation date
-        const sortedTasks = [...this.tasks].sort((a, b) => {
+        const sortedTasks = [...visibleTasks].sort((a, b) => {
             if (a.completed !== b.completed) {
                 return a.completed - b.completed;
             }
