@@ -1,119 +1,206 @@
-// Rejected above this length: localStorage is finite and long text breaks the row layout.
-const MAX_TASK_LENGTH = 500;
+'use strict';
+
+/**
+ * TaskFlow
+ * Task management application.
+ *
+ * Features:
+ * - Create, edit, delete and complete tasks
+ * - Work, Personal and Shopping categories
+ * - Search tasks by description
+ * - Filter tasks by completion status
+ * - Filter tasks by category
+ * - Persist tasks and categories in Local Storage
+ * - Support legacy tasks without categories
+ */
 
 class TaskFlow {
     constructor() {
+        // Preserve the startup error handling from the main branch.
         try {
+            this.storageKey = 'taskflow_tasks';
+            this.counterKey = 'taskflow_counter';
+
+            this.categories = ['Work', 'Personal', 'Shopping'];
+
+            // Category, search and status filters.
+            this.activeCategory = 'All';
             this.searchQuery = '';
             this.currentFilter = 'all';
+
             this.tasks = this.loadTasks();
             this.taskIdCounter = this.getNextTaskId();
+
             this.initializeApp();
             this.bindEvents();
             this.renderTasks();
             this.updateStats();
         } catch (error) {
             console.error('TaskFlow failed to start:', error);
-            this.showNotification('TaskFlow failed to start. Please reload the page.', 'error');
+
+            this.showNotification(
+                'TaskFlow failed to start. Please reload the page.',
+                'error'
+            );
+
+            throw error;
         }
     }
 
-    // Throws rather than returning null, so a missing element surfaces as one
-    // clear startup failure in the constructor instead of a later TypeError.
+    // ========================================
+    // Initialization
+    // ========================================
+
+    initializeApp() {
+        console.log('TaskFlow initialized successfully.');
+    }
+
+    /**
+     * Returns a required HTML element by ID.
+     */
     getElement(id) {
         const element = document.getElementById(id);
+
         if (!element) {
-            throw new Error(`Required element #${id} is missing from index.html`);
+            throw new Error(`Required HTML element not found: ${id}`);
         }
+
         return element;
     }
 
-    initializeApp() {
-        console.log('TaskFlow initialized successfully!');
-        this.showWelcomeMessage();
-    }
-
-    showWelcomeMessage() {
-        if (this.tasks.length === 0) {
-            console.log('Welcome to TaskFlow! Add your first task to get started.');
-        }
-    }
-
+    /**
+     * Connects the application to HTML events.
+     */
     bindEvents() {
         const addTaskBtn = this.getElement('addTaskBtn');
         const taskInput = this.getElement('taskInput');
+        const categoryInput = this.getElement('taskCategory');
+        const categoryFilter = this.getElement('categoryFilter');
+        const searchInput = this.getElement('searchInput');
 
-        addTaskBtn.addEventListener('click', () => this.addTask());
+        addTaskBtn.addEventListener('click', () => {
+            this.addTask();
+        });
 
-        taskInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+        taskInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
                 this.addTask();
             }
         });
 
-        const searchInput = this.getElement('searchInput');
-        searchInput.addEventListener('input', (e) => {
-            this.searchQuery = e.target.value;
+        taskInput.addEventListener('input', () => {
+            taskInput.setCustomValidity('');
+        });
+
+        categoryInput.addEventListener('change', () => {
+            if (!this.categories.includes(categoryInput.value)) {
+                categoryInput.setCustomValidity('Please select a valid category.');
+            } else {
+                categoryInput.setCustomValidity('');
+            }
+        });
+
+        // Category filtering.
+        categoryFilter.addEventListener('change', (event) => {
+            this.activeCategory = event.target.value;
             this.renderTasks();
         });
 
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.setFilter(btn.dataset.filter));
+        // Search filtering.
+        searchInput.addEventListener('input', (event) => {
+            this.searchQuery = event.target.value;
+            this.renderTasks();
         });
 
-        // Focus on input when page loads
+        // Status filtering.
+        document.querySelectorAll('.filter-btn').forEach((button) => {
+            button.addEventListener('click', () => {
+                this.setFilter(button.dataset.filter);
+            });
+        });
+
+        // Focus on the task input when the page loads.
         taskInput.focus();
     }
 
+    /**
+     * Changes the active completion-status filter.
+     */
     setFilter(filter) {
+        const validFilters = ['all', 'pending', 'completed'];
+
+        if (!validFilters.includes(filter)) {
+            return;
+        }
+
         this.currentFilter = filter;
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            const isActive = btn.dataset.filter === filter;
-            btn.classList.toggle('active', isActive);
-            btn.setAttribute('aria-pressed', String(isActive));
+
+        document.querySelectorAll('.filter-btn').forEach((button) => {
+            const isActive = button.dataset.filter === filter;
+
+            button.classList.toggle('active', isActive);
+            button.setAttribute('aria-pressed', String(isActive));
         });
+
         this.renderTasks();
     }
 
-    // Applies the search text and the status filter together; the stored
-    // tasks array is never modified, only the view of it.
-    getVisibleTasks() {
-        const query = this.searchQuery.trim().toLowerCase();
-        return this.tasks.filter(task => {
-            const matchesSearch = task.text.toLowerCase().includes(query);
-            const matchesFilter =
-                this.currentFilter === 'all' ||
-                (this.currentFilter === 'completed' && task.completed) ||
-                (this.currentFilter === 'pending' && !task.completed);
-            return matchesSearch && matchesFilter;
-        });
-    }
+    // ========================================
+    // Create Tasks
+    // ========================================
 
+    /**
+     * Creates a task using the description and selected category.
+     */
     addTask() {
         const taskInput = this.getElement('taskInput');
-        const taskText = taskInput.value.trim();
+        const categoryInput = this.getElement('taskCategory');
 
-        if (taskText === '') {
-            this.showNotification('Please enter a task description', 'warning');
+        const taskText = taskInput.value.trim();
+        const category = categoryInput.value;
+        const MAX_TASK_LENGTH = 500;
+
+        if (!taskText) {
+            this.showNotification(
+                'Please enter a task description.',
+                'warning'
+            );
+
             taskInput.focus();
             return;
         }
 
         if (taskText.length > MAX_TASK_LENGTH) {
-            this.showNotification(`Task description cannot be longer than ${MAX_TASK_LENGTH} characters`, 'warning');
+            this.showNotification(
+                `Task descriptions cannot exceed ${MAX_TASK_LENGTH} characters.`,
+                'warning'
+            );
+
             taskInput.focus();
+            return;
+        }
+
+        if (!this.categories.includes(category)) {
+            this.showNotification(
+                'Please select a valid category.',
+                'warning'
+            );
+
+            categoryInput.focus();
             return;
         }
 
         const newTask = {
             id: this.taskIdCounter++,
             text: taskText,
+            category: category,
             completed: false,
             createdAt: new Date().toISOString(),
             completedAt: null
         };
 
         this.tasks.push(newTask);
+
         this.saveTasks();
         this.renderTasks();
         this.updateStats();
@@ -121,95 +208,233 @@ class TaskFlow {
         taskInput.value = '';
         taskInput.focus();
 
-        this.showNotification('Task added successfully!', 'success');
+        this.showNotification(
+            'Task added successfully!',
+            'success'
+        );
     }
 
-    deleteTask(taskId) {
-        if (!this.tasks.some(task => task.id === taskId)) {
-            this.handleMissingTask(taskId, 'delete');
+    // ========================================
+    // Delete Tasks
+    // ========================================
+
+    /**
+     * Deletes a task by ID.
+     */
+    deleteTask(id) {
+        const task = this.tasks.find((item) => item.id === id);
+
+        if (!task) {
+            this.showNotification('Task not found.', 'error');
             return;
         }
 
-        if (confirm('Are you sure you want to delete this task?')) {
-            this.tasks = this.tasks.filter(task => task.id !== taskId);
-            this.saveTasks();
-            this.renderTasks();
-            this.updateStats();
-            this.showNotification('Task deleted successfully!', 'success');
-        }
+        this.tasks = this.tasks.filter((item) => item.id !== id);
+
+        this.saveTasks();
+        this.renderTasks();
+        this.updateStats();
+
+        this.showNotification(
+            'Task deleted successfully!',
+            'success'
+        );
     }
 
-    toggleTask(taskId) {
-        const task = this.tasks.find(task => task.id === taskId);
+    // ========================================
+    // Complete Tasks
+    // ========================================
+
+    /**
+     * Toggles a task's completion status.
+     */
+    toggleTask(id) {
+        const task = this.tasks.find((item) => item.id === id);
+
         if (!task) {
-            this.handleMissingTask(taskId, 'update');
+            this.showNotification('Task not found.', 'error');
             return;
         }
 
         task.completed = !task.completed;
-        task.completedAt = task.completed ? new Date().toISOString() : null;
+
+        task.completedAt = task.completed
+            ? new Date().toISOString()
+            : null;
+
         this.saveTasks();
         this.renderTasks();
         this.updateStats();
-
-        const message = task.completed ? 'Task completed! 🎉' : 'Task marked as pending';
-        this.showNotification(message, 'success');
     }
 
-    editTask(taskId) {
-        const task = this.tasks.find(task => task.id === taskId);
+    // ========================================
+    // Edit Tasks
+    // ========================================
+
+    /**
+     * Allows the user to edit a task's description.
+     */
+    editTask(id) {
+        const task = this.tasks.find((item) => item.id === id);
+
         if (!task) {
-            this.handleMissingTask(taskId, 'edit');
+            this.showNotification('Task not found.', 'error');
             return;
         }
 
-        const newText = prompt('Edit task:', task.text);
+        const newText = prompt('Edit your task:', task.text);
+
         if (newText === null) {
             return;
         }
 
-        const trimmed = newText.trim();
-        if (trimmed === '') {
-            this.showNotification('Task description cannot be empty', 'warning');
+        const updatedText = newText.trim();
+        const MAX_TASK_LENGTH = 500;
+
+        if (!updatedText) {
+            this.showNotification(
+                'Task description cannot be empty.',
+                'warning'
+            );
             return;
         }
 
-        if (trimmed.length > MAX_TASK_LENGTH) {
-            this.showNotification(`Task description cannot be longer than ${MAX_TASK_LENGTH} characters`, 'warning');
+        if (updatedText.length > MAX_TASK_LENGTH) {
+            this.showNotification(
+                `Task descriptions cannot exceed ${MAX_TASK_LENGTH} characters.`,
+                'warning'
+            );
             return;
         }
 
-        task.text = trimmed;
+        task.text = updatedText;
+
         this.saveTasks();
         this.renderTasks();
-        this.showNotification('Task updated successfully!', 'success');
-    }
-
-    // Reached when the rendered list is out of step with the task array, so it
-    // re-renders to resync rather than leaving a dead button on screen.
-    handleMissingTask(taskId, action) {
-        console.error(`Cannot ${action} task ${taskId}: no such task`);
-        this.showNotification('That task no longer exists.', 'error');
-        this.renderTasks();
         this.updateStats();
+
+        this.showNotification(
+            'Task updated successfully!',
+            'success'
+        );
     }
 
+    // ========================================
+    // Category Management
+    // ========================================
+
+    /**
+     * Returns a task's category.
+     * Legacy tasks without a category are treated as Uncategorized.
+     */
+    getTaskCategory(task) {
+        if (
+            task.category &&
+            this.categories.includes(task.category)
+        ) {
+            return task.category;
+        }
+
+        return 'Uncategorized';
+    }
+
+    /**
+     * Returns the CSS class for a category badge.
+     */
+    getCategoryClass(category) {
+        const categoryClasses = {
+            Work: 'category-work',
+            Personal: 'category-personal',
+            Shopping: 'category-shopping',
+            Uncategorized: 'category-uncategorized'
+        };
+
+        return categoryClasses[category] || 'category-uncategorized';
+    }
+
+    /**
+     * Returns tasks matching the selected category.
+     */
+    getTasksByCategory(tasks) {
+        if (this.activeCategory === 'All') {
+            return tasks;
+        }
+
+        if (this.activeCategory === 'Uncategorized') {
+            return tasks.filter((task) => {
+                return this.getTaskCategory(task) === 'Uncategorized';
+            });
+        }
+
+        return tasks.filter((task) => {
+            return this.getTaskCategory(task) === this.activeCategory;
+        });
+    }
+
+    // ========================================
+    // Search and Combined Filtering
+    // ========================================
+
+    /**
+     * Returns tasks matching search, status and category.
+     * All filters are applied together.
+     */
+    getVisibleTasks() {
+        const query = this.searchQuery.trim().toLowerCase();
+
+        // First, apply search and completion-status filtering.
+        const matchingTasks = this.tasks.filter((task) => {
+            const matchesSearch = task.text
+                .toLowerCase()
+                .includes(query);
+
+            const matchesStatus =
+                this.currentFilter === 'all' ||
+                (
+                    this.currentFilter === 'completed' &&
+                    task.completed
+                ) ||
+                (
+                    this.currentFilter === 'pending' &&
+                    !task.completed
+                );
+
+            return matchesSearch && matchesStatus;
+        });
+
+        // Then apply the category filter to the same result.
+        return this.getTasksByCategory(matchingTasks);
+    }
+
+    // ========================================
+    // Render Tasks
+    // ========================================
+
+    /**
+     * Displays the tasks matching all active filters.
+     */
     renderTasks() {
         const tasksList = this.getElement('tasksList');
         const emptyState = this.getElement('emptyState');
         const noResults = this.getElement('noResults');
 
+        // No tasks exist at all.
         if (this.tasks.length === 0) {
+            tasksList.innerHTML = '';
             tasksList.style.display = 'none';
             emptyState.style.display = 'block';
             noResults.style.display = 'none';
             return;
         }
 
+        // Tasks exist, so the general empty state should be hidden.
         emptyState.style.display = 'none';
+
         const visibleTasks = this.getVisibleTasks();
 
+        // Tasks exist, but none match the current filters.
         if (visibleTasks.length === 0) {
+            tasksList.innerHTML = '';
             tasksList.style.display = 'none';
             noResults.style.display = 'block';
             return;
@@ -218,235 +443,290 @@ class TaskFlow {
         noResults.style.display = 'none';
         tasksList.style.display = 'flex';
 
-        // Sort tasks: incomplete first, then by creation date
+        // Incomplete tasks first, then most recently created.
         const sortedTasks = [...visibleTasks].sort((a, b) => {
             if (a.completed !== b.completed) {
-                return a.completed - b.completed;
+                return a.completed ? 1 : -1;
             }
+
             return new Date(b.createdAt) - new Date(a.createdAt);
         });
 
-        tasksList.innerHTML = sortedTasks.map(task => `
-            <div class="task-item ${task.completed ? 'completed' : ''}" data-task-id="${task.id}">
-                <div class="task-content">
-                    <div class="task-checkbox ${task.completed ? 'checked' : ''}"
-                         onclick="taskFlow.toggleTask(${task.id})">
+        tasksList.innerHTML = sortedTasks.map((task) => {
+            const category = this.getTaskCategory(task);
+            const categoryClass = this.getCategoryClass(category);
+
+            const completedClass = task.completed ? 'completed' : '';
+            const checkedClass = task.completed ? 'checked' : '';
+
+            const checkedLabel = task.completed
+                ? 'Mark task as incomplete'
+                : 'Mark task as complete';
+
+            return `
+                <div class="task-item ${completedClass}">
+                    <div class="task-content">
+                        <button
+                            type="button"
+                            class="task-checkbox ${checkedClass}"
+                            onclick="taskFlow.toggleTask(${task.id})"
+                            aria-label="${checkedLabel}"
+                            aria-pressed="${task.completed}"
+                        ></button>
+
+                        <div class="task-details">
+                            <span class="task-text">${this.escapeHtml(task.text)}</span>
+
+                            <span class="task-category-badge ${categoryClass}">
+                                ${this.escapeHtml(category)}
+                            </span>
+                        </div>
                     </div>
-                    <span class="task-text">${this.escapeHtml(task.text)}</span>
+
+                    <div class="task-actions">
+                        <button
+                            type="button"
+                            class="task-btn edit-btn"
+                            onclick="taskFlow.editTask(${task.id})"
+                            aria-label="Edit task"
+                            title="Edit task"
+                        >✏️</button>
+
+                        <button
+                            type="button"
+                            class="task-btn delete-btn"
+                            onclick="taskFlow.deleteTask(${task.id})"
+                            aria-label="Delete task"
+                            title="Delete task"
+                        >🗑️</button>
+                    </div>
                 </div>
-                <div class="task-actions">
-                    <button class="task-btn edit-btn" onclick="taskFlow.editTask(${task.id})" title="Edit task">
-                        ✏️
-                    </button>
-                    <button class="task-btn delete-btn" onclick="taskFlow.deleteTask(${task.id})" title="Delete task">
-                        🗑️
-                    </button>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
+    // ========================================
+    // Task Statistics
+    // ========================================
+
+    /**
+     * Updates statistics for all tasks, regardless of filters.
+     */
     updateStats() {
         const totalTasks = this.tasks.length;
-        const completedTasks = this.tasks.filter(task => task.completed).length;
+
+        const completedTasks = this.tasks.filter((task) => {
+            return task.completed;
+        }).length;
+
         const pendingTasks = totalTasks - completedTasks;
 
         this.getElement('totalTasks').textContent = totalTasks;
         this.getElement('completedTasks').textContent = completedTasks;
         this.getElement('pendingTasks').textContent = pendingTasks;
 
-        // Update task count in header
-        this.getElement('taskCount').textContent = `${totalTasks} ${totalTasks === 1 ? 'task' : 'tasks'}`;
+        this.getElement('taskCount').textContent =
+            `${pendingTasks} pending`;
     }
 
+    // ========================================
+    // Local Storage
+    // ========================================
+
+    /**
+     * Saves tasks and their categories to Local Storage.
+     */
     saveTasks() {
         try {
-            localStorage.setItem('taskflow_tasks', JSON.stringify(this.tasks));
-            localStorage.setItem('taskflow_counter', this.taskIdCounter.toString());
+            localStorage.setItem(
+                this.storageKey,
+                JSON.stringify(this.tasks)
+            );
+
+            localStorage.setItem(
+                this.counterKey,
+                String(this.taskIdCounter)
+            );
+
+            return true;
         } catch (error) {
-            console.error('Failed to save tasks:', error);
-            this.showNotification('Failed to save tasks. Please check your browser storage.', 'error');
+            console.error('Could not save tasks:', error);
+
+            this.showNotification(
+                'Could not save changes. Check your browser storage settings.',
+                'error'
+            );
+
+            return false;
         }
     }
 
+    /**
+     * Loads saved tasks.
+     * Legacy tasks without categories remain compatible.
+     */
     loadTasks() {
         try {
-            const saved = localStorage.getItem('taskflow_tasks');
-            if (!saved) {
+            const savedTasks = localStorage.getItem(this.storageKey);
+
+            if (!savedTasks) {
                 return [];
             }
 
-            const parsed = JSON.parse(saved);
-            if (!Array.isArray(parsed)) {
-                throw new Error('Stored tasks are not an array');
+            const parsedTasks = JSON.parse(savedTasks);
+
+            if (!Array.isArray(parsedTasks)) {
+                console.warn('Saved tasks data is not an array.');
+                return [];
             }
 
-            // Malformed entries are dropped rather than repaired: a task with no
-            // usable id or text cannot be rendered or acted on anyway.
-            const valid = parsed.filter(task => this.isValidTask(task));
-            const discarded = parsed.length - valid.length;
-            if (discarded > 0) {
-                console.warn(`Discarded ${discarded} malformed task(s) from storage`);
-                this.showNotification(`Skipped ${discarded} unreadable task(s) in storage.`, 'warning');
-            }
-            return valid;
+            return parsedTasks
+                .filter((task) => this.isValidTask(task))
+                .map((task) => ({
+                    ...task,
+                    createdAt: task.createdAt || new Date().toISOString(),
+                    completedAt: task.completedAt || null
+                }));
         } catch (error) {
-            console.error('Failed to load tasks:', error);
-            this.showNotification('Saved tasks could not be read and were not loaded.', 'error');
+            console.error('Could not load saved tasks:', error);
             return [];
         }
     }
 
+    /**
+     * Checks whether a saved task contains required properties.
+     */
     isValidTask(task) {
-        return task !== null
-            && typeof task === 'object'
-            && Number.isFinite(task.id)
-            && typeof task.text === 'string'
-            && typeof task.completed === 'boolean';
+        return (
+            task !== null &&
+            typeof task === 'object' &&
+            Number.isFinite(task.id) &&
+            typeof task.text === 'string' &&
+            typeof task.completed === 'boolean'
+        );
     }
 
+    /**
+     * Finds the next available task ID.
+     */
     getNextTaskId() {
-        // Kept ahead of the highest id in use, so a missing or corrupt counter
-        // can never hand out a duplicate. A NaN id would be unmatchable by
-        // find(), which would silently break toggle, edit and delete.
-        const highestId = this.tasks.reduce((max, task) => Math.max(max, task.id), 0);
-        try {
-            const parsed = parseInt(localStorage.getItem('taskflow_counter'), 10);
-            return Math.max(Number.isFinite(parsed) ? parsed : 1, highestId + 1);
-        } catch (error) {
-            console.error('Failed to load task counter:', error);
-            return highestId + 1;
-        }
-    }
-
-    escapeHtml(unsafe) {
-        // Coerced first: a non-string value from storage would throw on .replace
-        return String(unsafe ?? '')
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
-    showNotification(message, type = 'info') {
-        // Logged before the DOM work, so the message survives even if the
-        // element below cannot be built. The constructor reports startup
-        // failures through here, which is why this must not throw.
-        console.log(`[${type.toUpperCase()}] ${message}`);
+        let storedCounter = 1;
 
         try {
-            // Create notification element
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 1rem 1.5rem;
-                border-radius: 8px;
-                color: white;
-                font-weight: 500;
-                z-index: 1000;
-                opacity: 0;
-                transform: translateY(-20px);
-                transition: all 0.3s ease;
-                max-width: 300px;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            `;
+            const savedCounter = localStorage.getItem(this.counterKey);
 
-            // Set color based on type
-            const colors = {
-                success: '#48bb78',
-                error: '#e53e3e',
-                warning: '#ed8936',
-                info: '#3182ce'
-            };
+            if (savedCounter !== null) {
+                const parsedCounter = Number(savedCounter);
 
-            notification.style.background = colors[type] || colors.info;
-            notification.textContent = message;
-
-            document.body.appendChild(notification);
-
-            // Animate in
-            setTimeout(() => {
-                notification.style.opacity = '1';
-                notification.style.transform = 'translateY(0)';
-            }, 100);
-
-            // Remove after 3 seconds
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                notification.style.transform = 'translateY(-20px)';
-                // remove() is a no-op if the node is already detached
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        } catch (error) {
-            console.error('Failed to display notification:', error);
-        }
-    }
-
-    // Utility methods for potential future features
-    exportTasks() {
-        let url;
-        try {
-            const dataStr = JSON.stringify(this.tasks, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            url = URL.createObjectURL(dataBlob);
-
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'taskflow_backup.json';
-            link.click();
-
-            this.showNotification('Tasks exported successfully!', 'success');
-        } catch (error) {
-            console.error('Failed to export tasks:', error);
-            this.showNotification('Failed to export tasks.', 'error');
-        } finally {
-            // Revoked on a later tick: revoking straight after click() can
-            // cancel the download before the browser has read the blob.
-            if (url) {
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                if (
+                    Number.isSafeInteger(parsedCounter) &&
+                    parsedCounter > 0
+                ) {
+                    storedCounter = parsedCounter;
+                }
             }
+        } catch (error) {
+            console.warn(
+                'Could not read the saved task counter:',
+                error
+            );
         }
+
+        const largestExistingId = this.tasks.reduce((largest, task) => {
+            return Math.max(largest, task.id);
+        }, 0);
+
+        return Math.max(storedCounter, largestExistingId + 1);
     }
 
-    clearAllTasks() {
-        if (confirm('Are you sure you want to delete ALL tasks? This cannot be undone.')) {
-            this.tasks = [];
-            this.saveTasks();
-            this.renderTasks();
-            this.updateStats();
-            this.showNotification('All tasks cleared!', 'success');
-        }
+    // ========================================
+    // HTML Safety
+    // ========================================
+
+    /**
+     * Escapes user-provided text before inserting it into HTML.
+     */
+    escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
-    getTaskStats() {
-        const now = new Date();
-        const stats = {
-            total: this.tasks.length,
-            completed: this.tasks.filter(t => t.completed).length,
-            pending: this.tasks.filter(t => !t.completed).length,
-            createdToday: this.tasks.filter(t => {
-                const taskDate = new Date(t.createdAt);
-                return taskDate.toDateString() === now.toDateString();
-            }).length,
-            completedToday: this.tasks.filter(t => {
-                if (!t.completedAt) return false;
-                const completedDate = new Date(t.completedAt);
-                return completedDate.toDateString() === now.toDateString();
-            }).length
+    // ========================================
+    // Notifications
+    // ========================================
+
+    /**
+     * Displays a temporary notification.
+     */
+    showNotification(message, type = 'info') {
+        const existingNotification = document.querySelector(
+            '.taskflow-notification'
+        );
+
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+
+        const notification = document.createElement('div');
+
+        notification.className = 'taskflow-notification';
+        notification.textContent = message;
+        notification.setAttribute('role', 'status');
+        notification.setAttribute('aria-live', 'polite');
+
+        const notificationColors = {
+            success: '#48bb78',
+            error: '#e53e3e',
+            warning: '#ed8936',
+            info: '#3182ce'
         };
-        return stats;
+
+        Object.assign(notification.style, {
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            zIndex: '1000',
+            maxWidth: 'calc(100vw - 40px)',
+            padding: '1rem 1.5rem',
+            borderRadius: '12px',
+            color: '#ffffff',
+            backgroundColor:
+                notificationColors[type] || notificationColors.info,
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+            fontWeight: '500',
+            animation: 'slideIn 0.3s ease'
+        });
+
+        document.body.appendChild(notification);
+
+        window.setTimeout(() => {
+            notification.remove();
+        }, 3000);
     }
 }
 
-// Initialize the app when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    window.taskFlow = new TaskFlow();
-});
+// ========================================
+// Application Startup
+// ========================================
 
-// Export for potential testing
+let taskFlow;
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        try {
+            taskFlow = new TaskFlow();
+            window.taskFlow = taskFlow;
+        } catch (error) {
+            console.error('TaskFlow could not start:', error);
+        }
+    });
+}
+
+// Support importing the class in tests or other JavaScript files.
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = TaskFlow;
 }
