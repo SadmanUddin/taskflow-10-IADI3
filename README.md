@@ -6,7 +6,7 @@
 **Try TaskFlow now:** [https://thomas-more-devops.github.io/taskflow-10-IADI3](https://thomas-more-devops.github.io/taskflow-10-IADI3)
 
 ## 📊 Project Status
-![TaskFlow](https://img.shields.io/badge/TaskFlow-v1.0.0-blue.svg)
+![TaskFlow](https://img.shields.io/badge/TaskFlow-v1.1.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![GitHub last commit](https://img.shields.io/github/last-commit/thomas-more-devops/taskflow-10-IADI3)
 ![GitHub issues](https://img.shields.io/github/issues/thomas-more-devops/taskflow-10-IADI3)
@@ -365,14 +365,23 @@ Thanks to all the students and developers who contributed to this project:
 
 ## 🔄 Version History
 
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
+See [CHANGELOG.md](CHANGELOG.md) for the detailed version history, and the
+[Releases page](https://github.com/thomas-more-devops/taskflow-10-IADI3/releases)
+for downloadable versions.
 
-### v1.0.0 (Current)
+### v1.1.0 (Current)
+- 🔍 Search tasks by text, filtering as you type
+- 🗂️ Task categories with colour-coded badges and category filtering
+- 🎚️ Filter by status: All, Pending, Completed
+- 📄 Pull request template, contributing guidelines and code of conduct
+
+### v1.0.0
 - ✨ Initial release with core functionality
 - 🎨 Modern, responsive design
 - 💾 Local storage persistence
 - 📊 Basic statistics tracking
 - 🔧 Complete CRUD operations
+- 🛡️ Hardened error handling and input validation
 
 ---
 
