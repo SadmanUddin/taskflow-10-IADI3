@@ -23,8 +23,15 @@ class TaskFlow {
 
             this.categories = ['Work', 'Personal', 'Shopping'];
 
-            // Category, search and status filters.
+            // Ordered most urgent first; the index doubles as the sort rank.
+            this.priorities = ['High', 'Medium', 'Low'];
+
+            // Applied to tasks saved before priorities existed.
+            this.defaultPriority = 'Medium';
+
+            // Category, priority, search and status filters.
             this.activeCategory = 'All';
+            this.activePriority = 'All';
             this.searchQuery = '';
             this.currentFilter = 'all';
             this.currentDueDateFilter = 'all';
@@ -86,6 +93,8 @@ class TaskFlow {
         const taskInput = this.getElement('taskInput');
         const categoryInput = this.getElement('taskCategory');
         const categoryFilter = this.getElement('categoryFilter');
+        const priorityInput = this.getElement('taskPriority');
+        const priorityFilter = this.getElement('priorityFilter');
         const searchInput = this.getElement('searchInput');
 
         addTaskBtn.addEventListener('click', () => {
@@ -110,9 +119,23 @@ class TaskFlow {
             }
         });
 
+        priorityInput.addEventListener('change', () => {
+            if (!this.priorities.includes(priorityInput.value)) {
+                priorityInput.setCustomValidity('Please select a valid priority.');
+            } else {
+                priorityInput.setCustomValidity('');
+            }
+        });
+
         // Category filtering.
         categoryFilter.addEventListener('change', (event) => {
             this.activeCategory = event.target.value;
+            this.renderTasks();
+        });
+
+        // Priority filtering.
+        priorityFilter.addEventListener('change', (event) => {
+            this.activePriority = event.target.value;
             this.renderTasks();
         });
 
@@ -172,10 +195,12 @@ class TaskFlow {
     addTask() {
         const taskInput = this.getElement('taskInput');
         const categoryInput = this.getElement('taskCategory');
+        const priorityInput = this.getElement('taskPriority');
 
         const dueDate = this.getElement('dueDateInput').value;
         const taskText = taskInput.value.trim();
         const category = categoryInput.value;
+        const priority = priorityInput.value;
         const MAX_TASK_LENGTH = 500;
 
         if (!taskText) {
@@ -208,10 +233,21 @@ class TaskFlow {
             return;
         }
 
+        if (!this.priorities.includes(priority)) {
+            this.showNotification(
+                'Please select a valid priority.',
+                'warning'
+            );
+
+            priorityInput.focus();
+            return;
+        }
+
         const newTask = {
             id: this.taskIdCounter++,
             text: taskText,
             category: category,
+            priority: priority,
             dueDate: dueDate || null,
             completed: false,
             createdAt: new Date().toISOString(),
@@ -392,6 +428,59 @@ class TaskFlow {
     }
 
     // ========================================
+    // Priorities
+    // ========================================
+
+    /**
+     * Returns a task's priority, falling back to the default for tasks
+     * saved before priorities existed or with an unrecognised value.
+     */
+    getTaskPriority(task) {
+        if (
+            task.priority &&
+            this.priorities.includes(task.priority)
+        ) {
+            return task.priority;
+        }
+
+        return this.defaultPriority;
+    }
+
+    /**
+     * Returns the CSS class for a priority badge.
+     */
+    getPriorityClass(priority) {
+        const priorityClasses = {
+            High: 'priority-high',
+            Medium: 'priority-medium',
+            Low: 'priority-low'
+        };
+
+        return priorityClasses[priority] || 'priority-medium';
+    }
+
+    /**
+     * Sort rank for a task: 0 is the most urgent. Taken from the position
+     * in this.priorities, so adding a level needs no change here.
+     */
+    getPriorityRank(task) {
+        return this.priorities.indexOf(this.getTaskPriority(task));
+    }
+
+    /**
+     * Returns tasks matching the selected priority.
+     */
+    getTasksByPriority(tasks) {
+        if (this.activePriority === 'All') {
+            return tasks;
+        }
+
+        return tasks.filter((task) => {
+            return this.getTaskPriority(task) === this.activePriority;
+        });
+    }
+
+    // ========================================
     // Search and Combined Filtering
     // ========================================
 
@@ -492,8 +581,11 @@ class TaskFlow {
             return matchesSearch && matchesStatus;
         });
 
-        // Then apply the category filter to the same result.
-        return this.getTasksByCategory(matchingTasks)
+        // Then narrow by category, priority and due date in turn.
+        // Order does not affect the result, only readability.
+        const byCategory = this.getTasksByCategory(matchingTasks);
+
+        return this.getTasksByPriority(byCategory)
             .filter((task) => this.matchesDueDateFilter(task));
     }
 
@@ -534,10 +626,20 @@ class TaskFlow {
         noResults.style.display = 'none';
         tasksList.style.display = 'flex';
 
-        // Incomplete tasks first, then due date, then most recently created.
+        // Incomplete first, then priority, then due date, then newest.
+        // Priority ranks below completion so finished work does not sit at
+        // the top of the list just because it was marked High. Tasks with a
+        // due date sort ahead of those without, within the same priority.
         const sortedTasks = [...visibleTasks].sort((a, b) => {
             if (a.completed !== b.completed) {
                 return a.completed ? 1 : -1;
+            }
+
+            const priorityDifference =
+                this.getPriorityRank(a) - this.getPriorityRank(b);
+
+            if (priorityDifference !== 0) {
+                return priorityDifference;
             }
 
             if (a.dueDate && b.dueDate) {
@@ -557,6 +659,9 @@ class TaskFlow {
             const isOverdue = this.isOverdue(task);
             const isDueToday = this.isDueToday(task);
             const dueDateText = this.formatDueDate(task.dueDate);
+
+            const priority = this.getTaskPriority(task);
+            const priorityClass = this.getPriorityClass(priority);
 
             const completedClass = task.completed ? 'completed' : '';
             const checkedClass = task.completed ? 'checked' : '';
@@ -582,6 +687,12 @@ class TaskFlow {
                             <span class="task-category-badge ${categoryClass}">
                                 ${this.escapeHtml(category)}
                             </span>
+
+                            <span
+                                class="task-priority-badge ${priorityClass}"
+                                title="Priority: ${this.escapeHtml(priority)}"
+                            >${this.escapeHtml(priority)}</span>
+
                             ${task.dueDate ? `
                                 <span class="due-date-badge ${isOverdue ? 'overdue' : ''} ${isDueToday ? 'due-today' : ''}">
                                     📅 ${dueDateText}

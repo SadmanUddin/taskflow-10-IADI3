@@ -66,6 +66,17 @@
                         <option value="Shopping">Shopping</option>
                     </select>
 
+                    <!-- Priority selector -->
+                    <select
+                        id="taskPriority"
+                        class="task-category-select"
+                        aria-label="Task priority"
+                    >
+                        <option value="High">High</option>
+                        <option value="Medium" selected>Medium</option>
+                        <option value="Low">Low</option>
+                    </select>
+
                     <button id="addTaskBtn" class="add-btn" type="button">
                         <span class="add-icon">+</span>
                         Add Task
@@ -167,6 +178,20 @@
                         <option value="Personal">Personal</option>
                         <option value="Shopping">Shopping</option>
                         <option value="Uncategorized">Uncategorized</option>
+                    </select>
+
+                    <label for="priorityFilter">
+                        Filter by priority:
+                    </label>
+
+                    <select
+                        id="priorityFilter"
+                        class="task-category-select"
+                    >
+                        <option value="All">All Priorities</option>
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
                     </select>
 
                 </div>
