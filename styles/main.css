@@ -1,6 +1,6 @@
 /*
     TaskFlow stylesheet.
-    Includes responsive styling and Category Management.
+    Includes responsive styling, Category Management and Task Priorities.
 
     Palette:
     Primary: #667eea -> #764ba2
@@ -9,7 +9,7 @@
     Danger:  #e53e3e
     Text:    #2d3748 / #4a5568 / #718096
 
-    Category badges use the existing project palette.
+    Category and priority badges use the existing project palette.
 */
 
 /* ========================================
@@ -475,6 +475,45 @@ select {
     border: 1px solid #e2e8f0;
 }
 
+/*
+    Priority badges. Same pill shape as the category badge, but squared off
+    and uppercase so the two are distinguishable at a glance without relying
+    on colour alone. Colours come from the project palette: danger for High,
+    warning for Medium, muted text for Low.
+*/
+.task-priority-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    max-width: 100%;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.priority-high {
+    background: #fed7d7;
+    color: #c53030;
+    border: 1px solid #feb2b2;
+}
+
+.priority-medium {
+    background: #feebc8;
+    color: #b7791f;
+    border: 1px solid #fbd38d;
+}
+
+.priority-low {
+    background: #edf2f7;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+}
+
 /* ========================================
    Task Actions
 ======================================== */
@@ -723,6 +762,10 @@ select {
 
     .task-category-badge {
         font-size: 0.7rem;
+    }
+
+    .task-priority-badge {
+        font-size: 0.65rem;
     }
 
     .task-filter-container .task-category-select {
